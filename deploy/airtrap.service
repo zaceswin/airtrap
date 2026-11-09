@@ -1,0 +1,13 @@
+[Unit]
+Description=airtrap Wi-Fi honeypot and WIDS
+After=network.target
+
+[Service]
+ExecStart=/opt/airtrap/venv/bin/airtrap run -c /etc/airtrap/airtrap.yml
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

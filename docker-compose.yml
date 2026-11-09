@@ -1,0 +1,11 @@
+services:
+  airtrap:
+    build: .
+    image: airtrap:latest
+    network_mode: host          # needs the host's wireless interfaces
+    cap_add: [NET_ADMIN, NET_RAW]
+    restart: unless-stopped
+    volumes:
+      - ./config/airtrap.example.yml:/etc/airtrap/airtrap.yml:ro   # copy + edit first!
+      - ./data/logs:/var/log/airtrap
+      - ./data/state:/var/lib/airtrap

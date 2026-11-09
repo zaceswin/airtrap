@@ -1,0 +1,32 @@
+# airtrap example configuration. Copy to /etc/airtrap/airtrap.yml
+sensor:
+  interface: wlan1            # monitor-mode capable USB adapter
+  channels: [1, 6, 11]        # add 36, 40, 44, 48 ... for 5 GHz
+  hop_interval: 0.4
+
+detection:
+  # List EVERY legitimate BSSID (each band / mesh node / extra SSID) of your networks.
+  # Generate a starting point with:  sudo airtrap learn -c /etc/airtrap/airtrap.yml
+  protected_networks:
+    HomeWiFi:
+      - "aa:bb:cc:dd:ee:01"
+      - "aa:bb:cc:dd:ee:02"
+  deauth_threshold: 15
+
+honeypot:
+  enabled: false              # needs a SECOND adapter that supports AP mode
+  interface: wlan2
+  ssid: "Linksys_Setup"
+  passphrase: "12345678"
+  channel: 6
+  country: "US"               # set your own country code
+
+response:
+  enabled: true
+  mode: flag                  # flag (track + alert) | block (also enforce)
+  block_score: 5
+  block_seconds: 3600
+  webhook_url: ""             # e.g. SIEM / chat / dashboard endpoint
+  hostapd_interfaces: []      # real APs on this host to push MAC deny-lists to
+  hook_command: []            # e.g. ["/usr/local/bin/push-to-router.sh"]
+  never_block: []
