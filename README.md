@@ -101,6 +101,17 @@ identity. Real attacker identifiers appear when they touch the honeypot (MAC, IP
 DNS and HTTP behaviour). Randomized MACs are flagged. Fix deauth for good with **802.11w/PMF** (mandatory in
 WPA3) on your real APs, plus WPA3-SAE with a strong passphrase.
 
+## Offline replay (no radio needed)
+
+```bash
+airtrap replay --demo                              # synthetic capture with every attack type
+airtrap replay capture.pcap --protect "HomeWiFi=aa:bb:cc:dd:ee:01"
+airtrap replay capture.pcap --hp-bssid 02:11:22:33:44:55 --hp-ssid Linksys_Setup -o events.jsonl
+```
+
+Captures must be taken in monitor mode (radiotap or raw 802.11). Event times in the output come from the
+capture (`capture_time`). Replay never touches the firewall, even with `--respond`.
+
 ## Layout
 
 ```

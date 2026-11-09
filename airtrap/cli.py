@@ -52,6 +52,39 @@ def cmd_learn(args):
                          sort_keys=False))
 
 
+def cmd_replay(args):
+    """Run a saved pcap/pcapng (or the built-in demo) through the detectors, offline."""
+    import tempfile
+
+    from . import logger, sample
+    from . import replay as rp
+    cfg = config.load(args.config)
+    pcap, hp_bssid, hp_ssid = args.pcap, args.hp_bssid, args.hp_ssid
+    if args.demo:
+        pcap = str(Path(tempfile.mkdtemp()) / "airtrap-demo.pcap")
+        sample.build(pcap)
+        cfg["detection"]["protected_networks"].update(sample.DEMO_PROTECTED)
+        hp_bssid, hp_ssid = sample.DEMO_HONEYPOT
+        print(f"demo capture written to {pcap}", file=sys.stderr)
+    if not pcap:
+        sys.exit("usage: airtrap replay CAPTURE.pcap   (or: airtrap replay --demo)")
+    for spec in args.protect:
+        ssid, _, macs = spec.partition("=")
+        cfg["detection"]["protected_networks"][ssid] = [m.strip().lower() for m in macs.split(",") if m.strip()]
+    if args.respond:
+        import tempfile as _tf
+        cfg["response"]["state_file"] = str(Path(_tf.mkdtemp()) / "attackers.json")
+    logger.setup(args.out, stdout=True)
+    _, stats = rp.replay(cfg, pcap, hp_bssid, hp_ssid, respond=args.respond)
+    print(f"\nframes: {stats['frames']}  802.11 frames: {stats['dot11_frames']}", file=sys.stderr)
+    if not stats["dot11_frames"]:
+        print("WARNING: no 802.11 frames: capture in monitor mode (radiotap / link type 127 or 105).", file=sys.stderr)
+    for name, n in sorted(stats["events"].items()):
+        print(f"  {n:4d}  {name}", file=sys.stderr)
+    if not stats["events"]:
+        print("  no detections", file=sys.stderr)
+
+
 def cmd_check(args):
     cfg = config.load(args.config)
     ok = True
@@ -75,10 +108,19 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="airtrap", description="Wi-Fi honeypot + wireless IDS")
     p.add_argument("--version", action="version", version=__version__)
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name, fn in (("run", cmd_run), ("learn", cmd_learn), ("check", cmd_check)):
+    for name, fn in (("run", cmd_run), ("learn", cmd_learn), ("check", cmd_check), ("replay", cmd_replay)):
         sp = sub.add_parser(name)
         sp.add_argument("-c", "--config", default=None)
         sp.set_defaults(fn=fn)
+        if name == "replay":
+            sp.add_argument("pcap", nargs="?", help="capture file (.pcap / .pcapng)")
+            sp.add_argument("--demo", action="store_true", help="generate and replay a synthetic attack capture")
+            sp.add_argument("--protect", action="append", default=[], metavar="SSID=MAC[,MAC]",
+                            help="protected network (repeatable)")
+            sp.add_argument("--hp-bssid")
+            sp.add_argument("--hp-ssid")
+            sp.add_argument("--respond", action="store_true", help="also run attacker scoring (never blocks)")
+            sp.add_argument("-o", "--out", help="also write JSON lines to this file")
         if name == "learn":
             sp.add_argument("-i", "--interface")
             sp.add_argument("-t", "--seconds", type=int, default=30)
