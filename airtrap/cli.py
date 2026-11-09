@@ -26,11 +26,12 @@ def cmd_learn(args):
     iface = args.interface or cfg["sensor"]["interface"]
     if not Path(f"/sys/class/net/{iface}").exists():
         sys.exit(f"Interface {iface} not found. Run `iw dev` and set sensor.interface in the config.")
-    stop, found = threading.Event(), defaultdict(set)
+    stop, found, frames = threading.Event(), defaultdict(set), [0]
     monitor.enable(iface)
     monitor.ChannelHopper(iface, cfg["sensor"]["channels"], cfg["sensor"]["hop_interval"], stop).start()
 
     def on(pkt):
+        frames[0] += 1
         if pkt.haslayer(Dot11Beacon):
             elt = pkt.getlayer(Dot11Elt)
             if elt is not None and elt.ID == 0 and elt.info:
@@ -40,6 +41,12 @@ def cmd_learn(args):
     finally:
         stop.set()
         monitor.disable(iface)
+    if not frames[0]:
+        print(f"WARNING: no frames captured on {iface}. Check `iw dev {iface} info` shows type monitor, "
+              "stop NetworkManager/wpa_supplicant, and try a USB adapter.", file=sys.stderr)
+    elif not found:
+        print(f"{frames[0]} frames seen but no beacons: add your channels (e.g. 36,40,44,48) to sensor.channels.",
+              file=sys.stderr)
     print("# Keep ONLY your own networks, then paste under detection: in airtrap.yml\n")
     print(yaml.safe_dump({"detection": {"protected_networks": {k: sorted(v) for k, v in sorted(found.items())}}},
                          sort_keys=False))
