@@ -7,7 +7,7 @@ name = "airtrap"
 version = "0.1.0"
 description = "Layer 2 Wi-Fi honeypot and wireless intrusion detection system with JSON logging"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = ["scapy>=2.5", "PyYAML>=6"]
 
