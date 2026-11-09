@@ -25,6 +25,10 @@ def run(cfg):
     rt.mkdir(parents=True, exist_ok=True)
     s, hp_cfg = cfg["sensor"], cfg["honeypot"]
     iface = s["interface"]
+    if not Path(f"/sys/class/net/{iface}").exists():
+        sys.exit(f"Sensor interface {iface} not found. Run `iw dev` and edit sensor.interface.")
+    if hp_cfg["enabled"] and not Path(f"/sys/class/net/{hp_cfg['interface']}").exists():
+        sys.exit(f"Honeypot interface {hp_cfg['interface']} not found (or set honeypot.enabled: false).")
     hp = Honeypot(cfg) if hp_cfg["enabled"] else None
     own = [iface_mac(iface), iface_mac(hp_cfg["interface"])]
     responder = Responder(cfg, own_macs=own, hp_iface=hp_cfg["interface"] if hp else None)

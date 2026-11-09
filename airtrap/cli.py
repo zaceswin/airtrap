@@ -24,6 +24,8 @@ def cmd_learn(args):
     from . import monitor
     cfg = config.load(args.config)
     iface = args.interface or cfg["sensor"]["interface"]
+    if not Path(f"/sys/class/net/{iface}").exists():
+        sys.exit(f"Interface {iface} not found. Run `iw dev` and set sensor.interface in the config.")
     stop, found = threading.Event(), defaultdict(set)
     monitor.enable(iface)
     monitor.ChannelHopper(iface, cfg["sensor"]["channels"], cfg["sensor"]["hop_interval"], stop).start()
